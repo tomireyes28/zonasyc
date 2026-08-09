@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- ENUMS ---
+enum Role {
+  ADMIN
+  WRITER
+}
+
+enum ArticleStatus {
+  IDEA
+  DRAFT
+  REVIEW
+  PUBLISHED
+}
+
+// --- MODELOS ---
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  password     String    // Contraseña encriptada por nosotros
+  name         String
+  avatar_url   String?
+  bio          String?
+  role         Role      @default(WRITER)
+  social_links Json?     // Ej: { "twitter": "@user", "instagram": "@user" }
+  
+  articles     Article[] // Relación: Un usuario tiene muchas notas
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  
+  articles    Article[]
+
+  createdAt   DateTime  @default(now())
+}
+
+model Tag {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  
+  articles    Article[]
+
+  createdAt   DateTime  @default(now())
+}
+
+model Article {
+  id               String        @id @default(uuid())
+  title            String
+  slug             String        @unique
+  content          String?       @db.Text // El HTML generado por TipTap
+  excerpt          String?       @db.Text
+  cover_image_url  String?
+  views            Int           @default(0)
+  status           ArticleStatus @default(IDEA)
+  
+  // Campos para la automatización IA
+  is_ai_generated  Boolean       @default(false)
+  source_url       String?       @db.Text 
+
+  // Relaciones
+  authorId         String
+  author           User          @relation(fields: [authorId], references: [id])
+  
+  categoryId       String?
+  category         Category?     @relation(fields: [categoryId], references: [id])
+  
+  tags             Tag[]         // Relación muchos-a-muchos implícita de Prisma
+
+  publishedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
