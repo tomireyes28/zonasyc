@@ -41,7 +41,8 @@ export async function loginAction(email: string, password: string): Promise<{ er
       
       isSuccess = true;
     }
-  } catch (error) {
+ } catch (error) {
+    console.error("Error crítico en Login Action:", error);
     return { error: "Error de conexión con el servidor (API apagada)" };
   }
 
