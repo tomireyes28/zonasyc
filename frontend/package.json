@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tiptap/extension-image": "^3.30.0",
     "@tiptap/extension-link": "^3.30.0",
     "@tiptap/extension-youtube": "^3.30.0",
     "@tiptap/pm": "^3.30.0",
