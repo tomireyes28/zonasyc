@@ -2,6 +2,8 @@
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import Youtube from '@tiptap/extension-youtube';
 
 interface TiptapProps {
   content: string;
@@ -10,16 +12,28 @@ interface TiptapProps {
 
 export default function Tiptap({ content, onChange }: TiptapProps) {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-zonasyc-red underline hover:text-red-400 transition-colors cursor-pointer',
+        },
+      }),
+      Youtube.configure({
+        inline: false,
+        HTMLAttributes: {
+          class: 'w-full aspect-video rounded-xl shadow-lg border border-slate-700/50 my-6',
+        },
+      }),
+    ],
     content: content,
     editorProps: {
       attributes: {
-        // Acá definimos el estilo del área donde se escribe (Tipografía clara, interlineado, sin bordes feos al hacer focus)
         class: 'prose prose-invert prose-slate max-w-none focus:outline-none min-h-[400px] p-4 text-slate-300',
       },
     },
     onUpdate: ({ editor }) => {
-      // Cada vez que el usuario teclea, devolvemos el HTML limpio al componente padre
       onChange(editor.getHTML());
     },
   });
@@ -27,6 +41,30 @@ export default function Tiptap({ content, onChange }: TiptapProps) {
   if (!editor) {
     return null;
   }
+
+  // Función para agregar o quitar links
+  const setLink = () => {
+    const previousUrl = editor.getAttributes('link').href;
+    const url = window.prompt('URL del enlace:', previousUrl);
+
+    // Cancelado
+    if (url === null) return;
+    // Vacío = quitar link
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
+    }
+    // Setear nuevo link
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  };
+
+  // Función para incrustar YouTube
+  const addYoutubeVideo = () => {
+    const url = window.prompt('Pegá la URL del video de YouTube:');
+    if (url) {
+      editor.commands.setYoutubeVideo({ src: url });
+    }
+  };
 
   return (
     <div className="border border-slate-700/50 rounded-xl overflow-hidden bg-slate-900/50">
@@ -44,7 +82,9 @@ export default function Tiptap({ content, onChange }: TiptapProps) {
         >
           Italic
         </button>
+        
         <div className="w-px h-6 bg-slate-700 mx-1 self-center"></div>
+        
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${editor.isActive('heading', { level: 2 }) ? 'bg-zonasyc-red text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'}`}
@@ -56,6 +96,22 @@ export default function Tiptap({ content, onChange }: TiptapProps) {
           className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${editor.isActive('heading', { level: 3 }) ? 'bg-zonasyc-red text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'}`}
         >
           H3
+        </button>
+
+        <div className="w-px h-6 bg-slate-700 mx-1 self-center"></div>
+
+        {/* NUEVOS BOTONES */}
+        <button
+          onClick={setLink}
+          className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${editor.isActive('link') ? 'bg-zonasyc-red text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'}`}
+        >
+          🔗 Link
+        </button>
+        <button
+          onClick={addYoutubeVideo}
+          className="px-3 py-1.5 rounded text-sm font-medium transition-colors text-slate-400 hover:bg-slate-700 hover:text-slate-200"
+        >
+          📺 YouTube
         </button>
       </div>
 
