@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, UseGuards, Headers, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Headers, UnauthorizedException, Param, Patch } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AiDraftDto } from './dto/ai-draft.dto';
 import { PrismaService } from '../prisma/prisma.service'; 
+import { UpdateArticleStatusDto } from './dto/update-article-status.dto';
+import { ArticleStatus } from '@prisma/client'; // <-- 1. Importamos el tipo estricto de Prisma
 
 @Controller('articles')
 export class ArticlesController {
@@ -27,5 +29,15 @@ export class ArticlesController {
       throw new UnauthorizedException('API Key inválida');
     }
     return this.articlesService.createAiDraft(aiDraftDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/status')
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateArticleStatusDto
+  ) {
+    // 2. Casteamos el string a ArticleStatus para que TypeScript se quede tranquilo
+    return this.articlesService.updateStatus(id, updateDto.status as ArticleStatus);
   }
 }
