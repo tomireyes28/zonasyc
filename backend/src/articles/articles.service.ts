@@ -1,14 +1,53 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiDraftDto } from './dto/ai-draft.dto';
-import { ArticleStatus } from '@prisma/client'; // <-- 1. Importamos el tipado estricto de Prisma
+import { ArticleStatus } from '@prisma/client'; 
+import { CreateArticleDto } from './dto/create-article.dto';
 
 @Injectable()
 export class ArticlesService {
   constructor(private prisma: PrismaService) {}
 
+  async create(createArticleDto: CreateArticleDto, userId: string) {
+    return this.prisma.article.create({
+      data: {
+        title: createArticleDto.title,
+        slug: createArticleDto.slug,
+        content: createArticleDto.content || '',
+        cover_image_url: createArticleDto.coverImage, // Mapeado exacto a tu schema
+        status: createArticleDto.status || ArticleStatus.DRAFT,
+        
+        // Relación con el autor
+        author: {
+          connect: { id: userId }
+        },
+        
+        // Relación con Categoría (conecta si existe, crea si no existe)
+        category: {
+          connectOrCreate: {
+            where: { name: createArticleDto.category },
+            create: {
+              name: createArticleDto.category,
+              slug: createArticleDto.category.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-')
+            }
+          }
+        },
+
+        // Relación Muchos-a-Muchos con Tags
+        tags: {
+          connectOrCreate: createArticleDto.tags.map(tag => ({
+            where: { name: tag },
+            create: {
+              name: tag,
+              slug: tag.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-')
+            }
+          }))
+        }
+      },
+    });
+  }
+
   async getKanbanBoard() {
-    // ... (este código queda igual)
     const articles = await this.prisma.article.findMany({
       orderBy: { updatedAt: 'desc' },
       include: { 
@@ -25,7 +64,6 @@ export class ArticlesService {
   }
 
   async createAiDraft(data: AiDraftDto) {
-    // ... (este código queda igual)
     const admin = await this.prisma.user.findFirst({
       where: { role: 'ADMIN' }
     });
@@ -54,12 +92,11 @@ export class ArticlesService {
     });
   }
 
-  // 2. Tipamos "status" como ArticleStatus en lugar de string
   async updateStatus(id: string, status: ArticleStatus) {
     return this.prisma.article.update({
       where: { id },
       data: { 
-        status // <-- ¡Chau any! Lo pasamos limpio y seguro
+        status
       }
     });
   }

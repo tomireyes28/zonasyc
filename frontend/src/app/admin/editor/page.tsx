@@ -2,7 +2,9 @@
 
 import { useState, useRef } from "react";
 import Tiptap from "@/components/admin/editor/Tiptap";
-import { uploadImageAction } from "@/app/admin/actions";
+import { uploadImageAction, createArticleAction } from "@/app/admin/actions";
+// Si después queremos redirigir al Kanban, usaremos esto:
+// import { useRouter } from "next/navigation"; 
 
 // Función utilitaria para autogenerar el slug
 const generateSlug = (text: string) => {
@@ -21,6 +23,7 @@ const generateSlug = (text: string) => {
 const CATEGORIES = ["Cine", "Series", "Videojuegos", "Música", "Libros", "Streaming"];
 
 export default function EditorPage() {
+  // const router = useRouter(); // Lo dejamos preparado para el futuro
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   
@@ -34,10 +37,20 @@ export default function EditorPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
+  // Estado de guardado
+  const [isSaving, setIsSaving] = useState(false);
+
   const slug = generateSlug(title); // Se calcula al vuelo en cada render
 
-  const handleSave = () => {
-    // Acá armaremos el paquete final para enviar a NestJS
+  // Nueva función handleSave asíncrona
+  const handleSave = async (statusToSave: string) => {
+    if (!title) {
+      alert("El título es obligatorio para guardar.");
+      return;
+    }
+
+    setIsSaving(true);
+
     const payload = {
       title,
       slug,
@@ -45,8 +58,19 @@ export default function EditorPage() {
       coverImage,
       category,
       tags,
+      status: statusToSave, // 'DRAFT' o 'PUBLISHED'
     };
-    console.log("Guardando borrador:", payload);
+
+    const result = await createArticleAction(payload);
+
+    if (result.error) {
+      alert(`Error al guardar: ${result.error}`);
+    } else {
+      alert(statusToSave === 'PUBLISHED' ? "¡Nota Publicada con éxito!" : "¡Borrador guardado con éxito!");
+      // Acá a futuro podemos hacer: router.push('/admin');
+    }
+    
+    setIsSaving(false);
   };
 
   // Subida de imagen de portada
@@ -97,13 +121,16 @@ export default function EditorPage() {
         </div>
         <div className="flex gap-4">
           <button 
-            onClick={handleSave}
-            className="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-lg"
+            onClick={() => handleSave('DRAFT')}
+            disabled={isSaving}
+            className="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-lg disabled:opacity-50"
           >
-            Guardar Borrador
+            {isSaving ? "Procesando..." : "Guardar Borrador"}
           </button>
           <button 
-            className="bg-zonasyc-red hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-lg shadow-red-500/20"
+            onClick={() => handleSave('PUBLISHED')}
+            disabled={isSaving}
+            className="bg-zonasyc-red hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-lg shadow-red-500/20 disabled:opacity-50"
           >
             Publicar
           </button>

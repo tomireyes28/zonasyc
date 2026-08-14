@@ -68,3 +68,41 @@ export async function uploadImageAction(formData: FormData) {
     return { error: "Error de conexión con la API" };
   }
 }
+
+export async function createArticleAction(payload: {
+  title: string;
+  slug: string;
+  content: string;
+  coverImage: string | null;
+  category: string;
+  tags: string[];
+  status: string;
+}) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) {
+    return { error: "Sesión inválida o expirada" };
+  }
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/articles`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      return { error: errorData.message || "Error al guardar en la base de datos" };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error en createArticleAction:", error);
+    return { error: "Error de conexión con la API" };
+  }
+}
