@@ -84,7 +84,7 @@ export class ArticlesService {
         source_url: data.source_url,
         cover_image_url: data.cover_image_url,
         status: 'DRAFT',
-        is_ai_generated: true,
+        is_ai_generated: true, 
         authorId: admin.id,
       }
     });
