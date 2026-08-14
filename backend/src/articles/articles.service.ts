@@ -9,20 +9,20 @@ export class ArticlesService {
   constructor(private prisma: PrismaService) {}
 
   async create(createArticleDto: CreateArticleDto, userId: string) {
+    const isPublished = createArticleDto.status === ArticleStatus.PUBLISHED;
+
     return this.prisma.article.create({
       data: {
         title: createArticleDto.title,
         slug: createArticleDto.slug,
         content: createArticleDto.content || '',
-        cover_image_url: createArticleDto.coverImage, // Mapeado exacto a tu schema
+        cover_image_url: createArticleDto.coverImage,
         status: createArticleDto.status || ArticleStatus.DRAFT,
+        publishedAt: isPublished ? new Date() : null, // <-- El registro del timestamp
         
-        // Relación con el autor
         author: {
           connect: { id: userId }
         },
-        
-        // Relación con Categoría (conecta si existe, crea si no existe)
         category: {
           connectOrCreate: {
             where: { name: createArticleDto.category },
@@ -32,8 +32,6 @@ export class ArticlesService {
             }
           }
         },
-
-        // Relación Muchos-a-Muchos con Tags
         tags: {
           connectOrCreate: createArticleDto.tags.map(tag => ({
             where: { name: tag },
@@ -93,10 +91,13 @@ export class ArticlesService {
   }
 
   async updateStatus(id: string, status: ArticleStatus) {
+    const isPublished = status === ArticleStatus.PUBLISHED;
+    
     return this.prisma.article.update({
       where: { id },
       data: { 
-        status
+        status,
+        publishedAt: isPublished ? new Date() : null, // <-- El registro del timestamp
       }
     });
   }
