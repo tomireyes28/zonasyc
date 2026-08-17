@@ -1,8 +1,10 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* Tailwind v4 usa @custom-variant en lugar de @variant */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  /* Acá definimos los colores personalizados de tu manual de marca */
   --color-zonasyc-red: #E60000;
   --color-zonasyc-dark: #0F172A;
   --color-zonasyc-card: #1E293B;
