@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common'; // <-- Agregado NotFoundException acá arriba
 import { PrismaService } from '../prisma/prisma.service';
 import { AiDraftDto } from './dto/ai-draft.dto';
 import { ArticleStatus } from '@prisma/client'; 
@@ -100,5 +100,57 @@ export class ArticlesService {
         publishedAt: isPublished ? new Date() : null, // <-- El registro del timestamp
       }
     });
+  }
+
+  // --- ENDPOINTS PÚBLICOS (DÍA 17) ---
+
+  async getLatestPublic() {
+    return this.prisma.article.findMany({
+      where: { status: 'PUBLISHED' },
+      orderBy: { publishedAt: 'desc' },
+      take: 20, // Traemos solo las últimas 20 para no saturar la página de inicio
+      include: {
+        author: { select: { name: true, avatar_url: true } },
+        category: true,
+        tags: true,
+      }
+    });
+  }
+
+  async getPublicByCategory(categorySlug: string) {
+    return this.prisma.article.findMany({
+      where: { 
+        status: 'PUBLISHED',
+        category: { slug: categorySlug }
+      },
+      orderBy: { publishedAt: 'desc' },
+      include: {
+        author: { select: { name: true, avatar_url: true } },
+        category: true,
+        tags: true,
+      }
+    });
+  }
+
+  async getPublicBySlug(slug: string) {
+    // Usamos findFirst y chequeamos que esté en PUBLISHED para que nadie lea borradores
+    const article = await this.prisma.article.findFirst({
+      where: { 
+        slug,
+        status: 'PUBLISHED' 
+      },
+      include: {
+        author: { select: { name: true, avatar_url: true, bio: true, social_links: true } },
+        category: true,
+        tags: true,
+      }
+    });
+
+    if (!article) {
+      // Ya no usamos require(), lanzamos la excepción importada arriba
+      throw new NotFoundException(`No se encontró el artículo con el slug: ${slug}`);
+    }
+
+    return article;
   }
 }
