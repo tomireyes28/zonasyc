@@ -5,8 +5,47 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Youtube from '@tiptap/extension-youtube';
-import Image from '@tiptap/extension-image';
+import { Node, mergeAttributes } from '@tiptap/core'; // <-- Importamos para crear el nodo
 import { uploadImageAction } from '@/app/admin/actions';
+
+// 1. Creamos nuestro propio Nodo "Figure" para soportar imágenes con leyendas nativas
+const FigureImage = Node.create({
+  name: 'figureImage',
+  group: 'block',
+  content: 'inline*',
+  draggable: true,
+  isolating: true,
+
+  addAttributes() {
+    return {
+      src: { default: null },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'figure',
+        contentElement: 'figcaption',
+        getAttrs: (dom) => {
+          const img = (dom as HTMLElement).querySelector('img');
+          if (!img) return false;
+          return { src: img.getAttribute('src') };
+        },
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'figure',
+      { class: 'my-10 flex flex-col items-center group' },
+      ['img', mergeAttributes(HTMLAttributes, { class: 'rounded-xl w-full border border-slate-700/50 shadow-2xl' })],
+      // Magia CSS: Si está vacío, muestra un placeholder
+      ['figcaption', { class: 'text-sm text-slate-400 mt-3 flex items-center justify-center italic text-center outline-none w-full min-h-[1.5rem] empty:before:content-["Escribí_una_leyenda_para_la_foto..."] empty:before:text-slate-600' }, 0],
+    ];
+  },
+});
 
 interface TiptapProps {
   content: string;
@@ -20,11 +59,7 @@ export default function Tiptap({ content, onChange }: TiptapProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Image.configure({
-        HTMLAttributes: {
-          class: 'rounded-xl max-w-full border border-slate-700/50 my-6 shadow-lg',
-        },
-      }),
+      FigureImage, // 2. Reemplazamos el Image normal por nuestro Figure con leyenda
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -33,10 +68,8 @@ export default function Tiptap({ content, onChange }: TiptapProps) {
       }),
       Youtube.configure({
         inline: false,
-        width: 840,
-        height: 472.5,
         HTMLAttributes: {
-          class: 'w-full aspect-video rounded-xl shadow-lg border border-slate-700/50 my-8 block',
+          class: 'w-full aspect-video rounded-xl shadow-2xl border border-slate-700/50 my-10 block',
         },
       }),
     ],
@@ -73,7 +106,6 @@ export default function Tiptap({ content, onChange }: TiptapProps) {
     }
   };
 
-  // Función para subir e insertar la imagen en el texto
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -87,8 +119,8 @@ export default function Tiptap({ content, onChange }: TiptapProps) {
     if (result.error) {
       alert(`Error al subir: ${result.error}`);
     } else if (result.url) {
-      // Si la subida fue exitosa, la insertamos en el editor
-      editor.chain().focus().setImage({ src: result.url }).run();
+      // 3. Insertamos la estructura HTML de la imagen con la leyenda vacía
+      editor.chain().focus().insertContent(`<figure><img src="${result.url}" /><figcaption></figcaption></figure>`).run();
     }
 
     setIsUploading(false);
