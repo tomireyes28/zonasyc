@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import Tiptap from "@/components/admin/editor/Tiptap";
+import SeoPanel from "@/components/admin/editor/SeoPanel";
 import { uploadImageAction, createArticleAction } from "@/app/admin/actions";
 // Si después queremos redirigir al Kanban, usaremos esto:
 // import { useRouter } from "next/navigation"; 
@@ -32,10 +33,14 @@ export default function EditorPage() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Nuevos estados SEO
+  // Estados de Clasificación
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+
+  // Nuevos estados SEO Manual
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
 
   // Estado de guardado
   const [isSaving, setIsSaving] = useState(false);
@@ -58,6 +63,8 @@ export default function EditorPage() {
       coverImage,
       category,
       tags,
+      metaTitle, // Se envía al backend
+      metaDescription, // Se envía al backend
       status: statusToSave, // 'DRAFT' o 'PUBLISHED'
     };
 
@@ -213,10 +220,10 @@ export default function EditorPage() {
             </div>
           </div>
 
-          {/* CAJA DE CLASIFICACIÓN Y SEO */}
+          {/* CAJA DE CLASIFICACIÓN */}
           <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-5">
             <h3 className="text-white font-semibold mb-4 border-b border-slate-700/50 pb-2">
-              Clasificación y SEO
+              Clasificación
             </h3>
 
             {/* Categorías */}
@@ -262,8 +269,18 @@ export default function EditorPage() {
                 />
               </div>
             </div>
-
           </div>
+
+          {/* CAJA DE OPTIMIZACIÓN SEO EN VIVO */}
+          <SeoPanel 
+            title={title} 
+            content={content} 
+            coverImage={coverImage}
+            onMetaChange={(newTitle, newDesc) => {
+              setMetaTitle(newTitle);
+              setMetaDescription(newDesc);
+            }} 
+          />
 
         </div>
       </div>
